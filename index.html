@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relatório Diário de Operações | Penske - Mercedes-Benz</title>
+  <!-- Ícones Lucide -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js para gráficos dinâmicos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- jsPDF e AutoTable para geração de PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <!-- SheetJS (xlsx) para exportação Excel/CSV -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <!-- Estilos -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Notificações Toast -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Cabeçalho Corporativo -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-logos">
+        <div class="logo-placeholder penske-logo" title="Espaço reservado Logotipo Penske">
+          <span class="logo-tag">PENSKE</span>
+          <small>Logistics</small>
+        </div>
+        <div class="logo-divider"></div>
+        <div class="logo-placeholder mb-logo" title="Espaço reservado Logotipo Mercedes-Benz">
+          <span class="logo-tag">MERCEDES-BENZ</span>
+          <small>Operação Dedicada</small>
+        </div>
+      </div>
+
+      <div class="header-title">
+        <h1>RELATÓRIO DIÁRIO DE OPERAÇÕES</h1>
+        <p>Penske | Mercedes-Benz</p>
+      </div>
+
+      <div class="header-status">
+        <span id="draft-status" class="status-badge">Não salvo</span>
+      </div>
+    </div>
+
+    <!-- Navegação Rápida por Seções -->
+    <nav class="section-nav">
+      <div class="nav-container">
+        <a href="#sec-identificacao" class="nav-link active"><i data-lucide="clipboard-list"></i> 1. Identificação</a>
+        <a href="#sec-linhas" class="nav-link"><i data-lucide="arrow-left-right"></i> 2. Linhas</a>
+        <a href="#sec-pecas" class="nav-link"><i data-lucide="package"></i> 3. Volume de Peças</a>
+        <a href="#sec-pessoas" class="nav-link"><i data-lucide="users"></i> 4. Gestão de Pessoas</a>
+        <a href="#sec-inventario" class="nav-link"><i data-lucide="check-square"></i> 5. Inventário</a>
+        <a href="#sec-dashboard" class="nav-link"><i data-lucide="bar-chart-3"></i> 6. Dashboard</a>
+        <a href="#sec-envio" class="nav-link"><i data-lucide="send"></i> 7. Revisão e Envio</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="main-container">
+    <!-- Barra de Ferramentas Superior -->
+    <div class="action-toolbar">
+      <div class="toolbar-group">
+        <button type="button" id="btn-novo" class="btn btn-outline-danger">
+          <i data-lucide="file-plus"></i> Novo Relatório
+        </button>
+        <button type="button" id="btn-rascunho" class="btn btn-secondary">
+          <i data-lucide="save"></i> Salvar Rascunho
+        </button>
+        <button type="button" id="btn-demo" class="btn btn-ghost" title="Preencher com dados demonstrativos para teste">
+          <i data-lucide="sparkles"></i> Dados Demo
+        </button>
+      </div>
+      <div class="toolbar-group">
+        <button type="button" id="btn-export-pdf" class="btn btn-outline">
+          <i data-lucide="file-text"></i> Exportar PDF
+        </button>
+        <button type="button" id="btn-export-excel" class="btn btn-outline">
+          <i data-lucide="table"></i> Exportar Excel/CSV
+        </button>
+        <button type="button" id="btn-revisar-top" class="btn btn-primary">
+          <i data-lucide="eye"></i> Revisar Relatório
+        </button>
+      </div>
+    </div>
+
+    <form id="operacoes-form" novalidate>
+      <!-- 1. IDENTIFICAÇÃO DA OPERAÇÃO -->
+      <section id="sec-identificacao" class="card-section">
+        <div class="section-header">
+          <div class="section-title">
+            <i data-lucide="clipboard-list"></i>
+            <h2>1. Identificação da Operação</h2>
+          </div>
+          <span class="required-hint">* Campos obrigatórios</span>
+        </div>
+
+        <div class="form-grid grid-3">
+          <div class="form-group">
+            <label for="data-operacao">Data da Operação *</label>
+            <input type="date" id="data-operacao" name="dataOperacao" required>
+          </div>
+
+          <div class="form-group">
+            <label for="turno">Turno *</label>
+            <select id="turno" name="turno" required>
+              <option value="">Selecione o turno...</option>
+              <option value="1º Turno">1º Turno</option>
+              <option value="2º Turno">2º Turno</option>
+              <option value="3º Turno">3º Turno</option>
+              <option value="Administrativo / Geral">Administrativo / Geral</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="unidade">Unidade Operacional *</label>
+            <input type="text" id="unidade" name="unidade" placeholder="Ex: Planta São Bernardo / Juiz de Fora" required>
+          </div>
+
+          <div class="form-group">
+            <label for="responsavel">Responsável pelo Preenchimento *</label>
+            <input type="text" id="responsavel" name="responsavel" placeholder="Nome completo do líder/analista" required>
+          </div>
+
+          <div class="form-group">
+            <label for="empresa-prestadora">Empresa Prestadora</label>
+            <input type="text" id="empresa-prestadora" value="Penske" readonly class="readonly-input">
+          </div>
+
+          <div class="form-group">
+            <label for="cliente">Cliente</label>
+            <input type="text" id="cliente" value="Mercedes-Benz" readonly class="readonly-input">
+          </div>
+        </div>
+
+        <div class="form-group mt-1">
+          <label for="observacoes">Observações Gerais da Operação</label>
+          <textarea id="observacoes" name="observacoes" rows="2" placeholder="Registre ocorrências relevantes, paradas de linha, desvios ou destaques do turno..."></textarea>
+        </div>
+      </section>
+
+      <!-- 2. MOVIMENTAÇÃO DE LINHAS -->
+      <section id="sec-linhas" class="card-section">
+        <div class="section-header">
+          <div class="section-title">
+            <i data-lucide="arrow-left-right"></i>
+            <h2>2. Movimentação de Linhas (Inbound & Outbound)</h2>
+          </div>
+        </div>
+
+        <div class="split-grid">
+          <!-- A. Linhas Recebidas - INBOUND -->
+          <div class="sub-card">
+            <div class="sub-card-header inbound-accent">
+              <h3><i data-lucide="arrow-down-left"></i> A. Linhas Recebidas — INBOUND</h3>
+            </div>
+            <div class="form-grid grid-2">
+              <div class="form-group">
+                <label for="linhas-in-nacional">Mercado Interno (Nacional) *</label>
+                <input type="number" id="linhas-in-nacional" min="0" step="1" value="0" class="calc-trigger int-only" required>
+              </div>
+              <div class="form-group">
+                <label for="linhas-in-importado">Mercado Externo (Importado) *</label>
+                <input type="number" id="linhas-in-importado" min="0" step="1" value="0" class="calc-trigger int-only" required>
+              </div>
+            </div>
+            <div class="total-banner">
+              <span>Total de Linhas Recebidas:</span>
+              <strong id="total-linhas-in">0</strong>
+            </div>
+          </div>
+
+          <!-- B. Linhas Produzidas - OUTBOUND -->
+          <div class="sub-card">
+            <div class="sub-card-header outbound-accent">
+              <h3><i data-lucide="arrow-up-right"></i> B. Linhas Produzidas — OUTBOUND</h3>
+            </div>
+            <div class="form-grid grid-2">
+              <div class="form-group">
+                <label for="linhas-out-nacional">Mercado Interno (Nacional) *</label>
+                <input type="number" id="linhas-out-nacional" min="0" step="1" value="0" class="calc-trigger int-only" required>
+              </div>
+              <div class="form-group">
+                <label for="linhas-out-importado">Mercado Externo (Importado) *</label>
+                <input type="number" id="linhas-out-importado" min="0" step="1" value="0" class="calc-trigger int-only" required>
+              </div>
+            </div>
+            <div class="total-banner">
+              <span>Total de Linhas Produzidas:</span>
+              <strong id="total-linhas-out">0</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comparação Visual Rápida de Linhas -->
+        <div class="comparison-bar-box mt-1">
+          <div class="comparison-labels">
+            <span>Proporção Inbound (<strong id="pct-linhas-in">0%</strong>) vs Outbound (<strong id="pct-linhas-out">0%</strong>)</span>
+            <span id="diff-linhas-texto">Saldo: 0 linhas</span>
+          </div>
+          <div class="dual-progress">
+            <div id="bar-linhas-in" class="progress-in" style="width: 50%"></div>
+            <div id="bar-linhas-out" class="progress-out" style="width: 50%"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. VOLUME DE PEÇAS MOVIMENTADAS -->
+      <section id="sec-pecas" class="card-section">
+        <div class="section-header">
+          <div class="section-title">
+            <i data-lucide="package"></i>
+            <h2>3. Volume de Peças Movimentadas</h2>
+          </div>
+        </div>
+
+        <div class="split-grid">
+          <!-- Tabela A: Peças Recebidas - INBOUND -->
+          <div class="sub-card">
+            <div class="sub-card-header inbound-accent">
+              <h3>A. Peças Recebidas — INBOUND</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Classificação</th>
+                    <th>Nacional</th>
+                    <th>Importado</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Leve</strong></td>
+                    <td><input type="number" id="pecas-in-leve-nac" min="0" step="1" value="0" class="table-input calc-trigger int-only"></td>
+                    <td><input type="number" id="pecas-in-leve-imp" min="0" step="1" value="0" class="table-input calc-trigger int-only"></td>
+                    <td class="auto-cell" id="total-pecas-in-leve">0</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Médio</strong></td>
+                    <td><input type="number" id="pecas-in-medio-nac" min="0" step="1" value="0" class="table-input calc-trigger int-only"></td>
+                    <td><input type="number" id="pecas-in-medio-imp" min="0" step="1" value="0" class="table-input calc-trigger int-only"></td>
+                    <td class="auto-cell" id="total-pecas-in-medio">0</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Pesado</strong></td>
+                    <td><input type="number" id="pecas-in-pesado-nac" min="0" step="1" value="0" class="table-input calc-trigger int-only"></td>
+                    <td><input type="number" id="pecas-in-pesado-imp" min="0" step="1" value="0" class="table-input calc-trigger int-only"></td>
+                    <td class="auto-cell" id="total-pecas-in-pesado">0</td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr class="total-row">
+                    <td>TOTAL INBOUND</td>
+                    <td id="total-pecas-in-nac">0</td>
+                    <td id="total-pecas-in-imp">0</td>
+                    <td class="highlight-total" id="total-pecas-in-geral">0</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          <!-- Tabela B: Peças Produzidas/Expedidas - OUTBOUND -->
+          <div class="sub-card">
+            <div class="sub-card-header outbound-accent">
+              <h3>B. Peças Produzidas / Expedidas — OUTBOUND</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Classificação</th>
+                    <th>Nacional</th>
+                    <th>Importado</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Leve</strong></td>
+                    <td><input type="number" id="pecas-out-leve-nac" min="0" step="1" value="0" class="table-input calc-trigger int-only"></td>
+                    <td><input type="number" id="pecas-out-leve-imp" min="0" step="1" value="0" class="table-input calc-trigger int-only"></td>
+                    <td class="auto-cell" id="total-pecas-out-leve">0</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Médio</strong></td>
+                    <td><input type="number" id="pecas-out-medio-nac" min="0" step="1" value="0" class="table-input calc-trigger int-only"></td>
+                    <td><input type="number" id="pecas-out-medio-imp" min="0" step="1" value="0" class="table-input calc-trigger int-only"></td>
+                    <td class="auto-cell" id="total-pecas-out-medio">0</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Pesado</strong></td>
+                    <td><input type="number" id="pecas-out-pesado-nac" min="0" step="1" value="0" class="table-input calc-trigger int-only"></td>
+                    <td><input type="number" id="pecas-out-pesado-imp" min="0" step="1" value="0" class="table-input calc-trigger int-only"></td>
+                    <td class="auto-cell" id="total-pecas-out-pesado">0</td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr class="total-row">
+                    <td>TOTAL OUTBOUND</td>
+                    <td id="total-pecas-out-nac">0</td>
+                    <td id="total-pecas-out-imp">0</td>
+                    <td class="highlight-total" id="total-pecas-out-geral">0</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. GESTÃO DE PESSOAS E ABSENTEÍSMO -->
+      <section id="sec-pessoas" class="card-section">
+        <div class="section-header">
+          <div class="section-title">
+            <i data-lucide="users"></i>
+            <h2>4. Gestão de Pessoas & Absenteísmo</h2>
+          </div>
+          <button type="button" id="btn-add-area" class="btn btn-sm btn-primary">
+            <i data-lucide="plus"></i> Adicionar Área
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table" id="tabela-pessoas">
+            <thead>
+              <tr>
+                <th style="width: 40%;">Área Operacional *</th>
+                <th style="width: 20%;">Funcionários *</th>
+                <th style="width: 20%;">Ausentes *</th>
+                <th style="width: 12%;">Absenteísmo (%)</th>
+                <th style="width: 8%;">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="pessoas-tbody">
+              <!-- Linhas inseridas dinamicamente via JS -->
+            </tbody>
+            <tfoot>
+              <tr class="total-row">
+                <td>TOTAL GERAL DA OPERAÇÃO</td>
+                <td id="total-funcionarios">0</td>
+                <td id="total-ausentes">0</td>
+                <td class="highlight-total" id="total-absenteismo">0,00%</td>
+                <td>—</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <p id="pessoas-error-msg" class="inline-error hidden"></p>
+      </section>
+
+      <!-- 5. CONTROLE DE CONTAGEM DE INVENTÁRIO -->
+      <section id="sec-inventario" class="card-section">
+        <div class="section-header">
+          <div class="section-title">
+            <i data-lucide="check-square"></i>
+            <h2>5. Controle de Contagem de Inventário</h2>
+          </div>
+          <span id="badge-meta-status" class="badge-neutral">Aguardando dados</span>
+        </div>
+
+        <div class="form-grid grid-4">
+          <div class="form-group">
+            <label for="inv-meta">Meta de Contagem *</label>
+            <input type="number" id="inv-meta" min="0" step="1" value="0" class="calc-trigger int-only" required>
+          </div>
+          <div class="form-group">
+            <label for="inv-realizado">Quantidade Realizada *</label>
+            <input type="number" id="inv-realizado" min="0" step="1" value="0" class="calc-trigger int-only" required>
+          </div>
+          <div class="form-group">
+            <label>Quantidade Pendente</label>
+            <div class="readonly-metric" id="inv-pendente">0</div>
+          </div>
+          <div class="form-group">
+            <label>Realização da Meta</label>
+            <div class="readonly-metric highlight-metric" id="inv-percentual">0,00%</div>
+          </div>
+        </div>
+
+        <div class="progress-wrapper mt-1">
+          <div class="progress-header">
+            <span>Progresso da Contagem Diária</span>
+            <span id="inv-progress-label">0 / 0 itens</span>
+          </div>
+          <div class="progress-track">
+            <div id="inv-progress-bar" class="progress-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. DASHBOARD CONSOLIDADO -->
+      <section id="sec-dashboard" class="card-section dashboard-section">
+        <div class="section-header">
+          <div class="section-title">
+            <i data-lucide="bar-chart-3"></i>
+            <h2>6. Dashboard Consolidado da Operação</h2>
+          </div>
+          <span class="live-indicator"><span class="dot"></span> Atualização em tempo real</span>
+        </div>
+
+        <!-- 10 KPI Cards Consolidados -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-label">1. Linhas Recebidas</span>
+            <strong class="kpi-value" id="kpi-linhas-in">0</strong>
+            <span class="kpi-sub">Inbound</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">2. Linhas Produzidas</span>
+            <strong class="kpi-value" id="kpi-linhas-out">0</strong>
+            <span class="kpi-sub">Outbound</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">3. Peças Recebidas</span>
+            <strong class="kpi-value" id="kpi-pecas-in">0</strong>
+            <span class="kpi-sub">Volume Inbound</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">4. Peças Expedidas</span>
+            <strong class="kpi-value" id="kpi-pecas-out">0</strong>
+            <span class="kpi-sub">Volume Outbound</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">5. Total Funcionários</span>
+            <strong class="kpi-value" id="kpi-funcionarios">0</strong>
+            <span class="kpi-sub">Quadro Ativo</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">6. Total Ausentes</span>
+            <strong class="kpi-value" id="kpi-ausentes">0</strong>
+            <span class="kpi-sub">Faltas/Afastamentos</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">7. Absenteísmo Geral</span>
+            <strong class="kpi-value" id="kpi-absenteismo">0,00%</strong>
+            <span class="kpi-sub">Média Operacional</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">8. Meta Inventário</span>
+            <strong class="kpi-value" id="kpi-inv-meta">0</strong>
+            <span class="kpi-sub">Programado</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">9. Inventário Realizado</span>
+            <strong class="kpi-value" id="kpi-inv-realizado">0</strong>
+            <span class="kpi-sub">Contado</span>
+          </div>
+          <div class="kpi-card kpi-highlight">
+            <span class="kpi-label">10. Atingimento Inventário</span>
+            <strong class="kpi-value" id="kpi-inv-pct">0,00%</strong>
+            <span class="kpi-sub">Performance Meta</span>
+          </div>
+        </div>
+
+        <!-- Grade de Gráficos Dinâmicos -->
+        <div class="charts-grid">
+          <div class="chart-box">
+            <h4>Linhas Recebidas x Produzidas</h4>
+            <div class="canvas-container"><canvas id="chart-linhas"></canvas></div>
+          </div>
+          <div class="chart-box">
+            <h4>Volume de Peças Inbound x Outbound</h4>
+            <div class="canvas-container"><canvas id="chart-pecas-io"></canvas></div>
+          </div>
+          <div class="chart-box">
+            <h4>Peças Nacionais x Importadas (Total)</h4>
+            <div class="canvas-container"><canvas id="chart-origem"></canvas></div>
+          </div>
+          <div class="chart-box">
+            <h4>Peças por Peso (Leve, Média, Pesada)</h4>
+            <div class="canvas-container"><canvas id="chart-peso"></canvas></div>
+          </div>
+          <div class="chart-box">
+            <h4>Absenteísmo por Área (%)</h4>
+            <div class="canvas-container"><canvas id="chart-absenteismo"></canvas></div>
+          </div>
+          <div class="chart-box">
+            <h4>Inventário: Meta x Realizado</h4>
+            <div class="canvas-container"><canvas id="chart-inventario"></canvas></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7. CONFIGURAÇÃO E ENVIO DE E-MAIL -->
+      <section id="sec-envio" class="card-section email-section">
+        <div class="section-header">
+          <div class="section-title">
+            <i data-lucide="mail"></i>
+            <h2>7. Configuração de Destinatários e Envio Oficial</h2>
+          </div>
+        </div>
+
+        <div class="form-grid grid-2">
+          <div class="form-group">
+            <label for="email-para">Destinatários Mercedes-Benz (Para) *</label>
+            <input type="text" id="email-para" placeholder="gestor.mb@exemplo.com, logistica.mb@exemplo.com" required>
+            <small class="field-hint">Separe múltiplos e-mails por vírgula.</small>
+          </div>
+          <div class="form-group">
+            <label for="email-cc">Em Cópia (CC)</label>
+            <input type="text" id="email-cc" placeholder="coordenacao.penske@exemplo.com, supervisao@exemplo.com">
+            <small class="field-hint">Opcional. Separe múltiplos e-mails por vírgula.</small>
+          </div>
+        </div>
+
+        <div class="attachments-options">
+          <label class="checkbox-label">
+            <input type="checkbox" id="anexar-pdf" checked>
+            <span>Anexar Relatório Oficial em PDF</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="anexar-csv" checked>
+            <span>Anexar Planilha de Dados (CSV)</span>
+          </label>
+        </div>
+
+        <div id="ultimo-envio-box" class="last-sent-info hidden"></div>
+
+        <div class="submit-bar">
+          <button type="button" id="btn-revisar" class="btn btn-secondary btn-lg">
+            <i data-lucide="eye"></i> Revisar Relatório
+          </button>
+          <button type="button" id="btn-enviar-mb" class="btn btn-cta btn-lg">
+            <i data-lucide="send"></i> ENVIAR RELATÓRIO PARA MERCEDES-BENZ
+          </button>
+        </div>
+      </section>
+    </form>
+  </main>
+
+  <!-- MODAL DE REVISÃO E CONFIRMAÇÃO DE ENVIO -->
+  <div id="modal-revisao" class="modal-backdrop hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3><i data-lucide="file-check"></i> Revisão do Relatório Diário de Operações</h3>
+        <button type="button" class="btn-close-modal" id="btn-fechar-modal">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-revisao-conteudo">
+        <!-- Preenchido dinamicamente -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" id="btn-cancelar-envio">Voltar e Editar</button>
+        <button type="button" class="btn btn-cta" id="btn-confirmar-envio">
+          <i data-lucide="check-circle"></i> Confirmar e Enviar E-mail Agora
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    <p>Sistema de Indicadores Operacionais — <strong>Penske Logistics</strong> | Cliente: <strong>Mercedes-Benz</strong></p>
+  </footer>
+
+  <!-- Scripts Modulares -->
+  <script src="js/calculations.js"></script>
+  <script src="js/validations.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/script.js"></script>
+</body>
+</html>

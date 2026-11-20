@@ -1,0 +1,14 @@
+{
+  "name": "penske-mercedes-dashboard",
+  "version": "1.0.0",
+  "description": "Sistema Web de Indicadores Operacionais Penske | Mercedes-Benz",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "nodemailer": "^6.9.13"
+  }
+}
